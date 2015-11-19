@@ -1,5 +1,6 @@
 package com.vicxiao.weixinhacker;
 
+import com.vicxiao.weixinhacker.sender.Senders;
 import com.vicxiao.weixinhacker.sender.TextSender;
 
 import java.lang.reflect.Method;
@@ -7,6 +8,7 @@ import java.lang.reflect.Method;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
+import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
@@ -57,10 +59,12 @@ public class Main implements IXposedHookLoadPackage {
 //                XposedBridge.log("rawQuery");
                 if (param.args != null && param.args.length > 0) {
                     if (param.args[0].toString().startsWith("select * from message")) {
-                        if (Math.random() > 0.6 && !tried && TextSender.senderMethod != null) {
-                            TextSender.send("1086230229@chatroom", "From Xposed");
+                        if (Math.random() > 0.6 && !tried && Senders.getReceiverCount() == 2) {
                             tried = true;
-
+                            Senders.sendText("1086230229@chatroom", "Chatroom");
+                            Senders.sendText("xwxwxw1235", "xw");
+                            Senders.log("log");
+                            Senders.sendTextToAll("ToAll");
                         }
                     }
                 }
@@ -74,27 +78,38 @@ public class Main implements IXposedHookLoadPackage {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
-                if (TextSender.senderMethod == null) {
-                    XposedBridge.log("Get sender");
-                    TextSender.senderMethod = (Method) param.method;
-                    TextSender.sender = param.thisObject;
+                String content = (String) param.args[0];
+                if (isCommand(content)){
+                    Method method = (Method) param.method;
+                    Object receiver = param.thisObject;
+                    String talkerName = (String) XposedHelpers.callMethod(receiver,"getTalkerUserName");
+                    if (content.equalsIgnoreCase("Register")){
+                        XposedBridge.log(String.format("Register sender [%s]", talkerName));
+                        Senders.registerSender(talkerName, new TextSender(receiver,method,talkerName));
+                    } else if (content.equalsIgnoreCase("Unregister")){
+                        XposedBridge.log(String.format("Unregister sender [%s]", talkerName));
+                        Senders.unregisterSender(talkerName);
+                    } else if (content.equalsIgnoreCase("log on")){
+                        XposedBridge.log("Log is on");
+                        Senders.setLogger(new TextSender(receiver,method,talkerName));
+                    } else if (content.equalsIgnoreCase("log off")){
+                        XposedBridge.log("Log is off");
+                        Senders.setLogger(null);
+                    }
                 }
             }
 
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                super.afterHookedMethod(param);
-                TextSender.currentTalker = null;// Clear talker
-            }
-        });
-        findAndHookMethod("com.tencent.mm.ui.chatting.ChattingUI$a", loadPackageParam.classLoader, "getTalkerUserName", new XC_MethodHook() {
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                super.afterHookedMethod(param);
-                if (TextSender.currentTalker != null) {
-                    XposedBridge.log("Try to modify sender");
-                    param.setResult(TextSender.currentTalker);
+            private boolean isCommand(String content){
+                if(content == null){
+                    return false;
                 }
+                String[] commands = new String[]{"Register", "Unregister", "log on", "log off"};
+                for (String command : commands) {
+                    if (command.equalsIgnoreCase(content)){
+                        return true;
+                    }
+                }
+                return false;
             }
         });
     }

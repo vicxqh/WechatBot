@@ -9,20 +9,26 @@ import de.robv.android.xposed.XposedBridge;
 /**
  * Created by xw on 2015/11/18.
  */
-public class TextSender {
-    public static Object sender = null;
-    public static Method senderMethod = null;
-    public static String currentTalker = null;
+public class TextSender implements ISender<String>{
+    private Object sender = null;
+    private Method senderMethod = null;
+    private String talker = null;
 
-    public static void send(String talker, String content) {
+    public TextSender(Object sender, Method senderMethod, String talker) {
+        this.sender = sender;
+        this.senderMethod = senderMethod;
+        this.talker = talker;
+    }
+
+    @Override
+    public void send(String content) {
         if (sender == null) {
             XposedBridge.log("TextSender.sender is null");
             return;
         }
-        XposedBridge.log("Sending message...");
+        XposedBridge.log("Sending message to [" + this.talker +"]");
         try {
             XposedBridge.log("Try send");
-            currentTalker = talker;
             senderMethod.invoke(sender, content);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
