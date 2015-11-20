@@ -63,19 +63,21 @@ public class Main implements IXposedHookLoadPackage {
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
 //                XposedBridge.log("rawQuery");
 //                XposedBridge.log(param.args[0].toString());
-                if (param.args != null && param.args.length > 0) {
-                    if (param.args[0].toString().startsWith("select * from message")) {
-//                        XposedBridge.log(param.args[0].toString());
-                        if (Math.random() > 0.6 && !submitted && Senders.getReceiverCount() == 2) {
-                            submitted = true;
-                            Senders.sendText("1086230229@chatroom", "Chatroom");
-                            Senders.sendText("xwxwxw1235", "xw");
-                            Senders.log("log");
-                            Senders.sendTextToAll("ToAll");
-                            XposedBridge.log("Jobs submitted!");
-                        }
-                    }
-                }
+
+
+//                if (param.args != null && param.args.length > 0) {
+//                    if (param.args[0].toString().startsWith("select * from message")) {
+////                        XposedBridge.log(param.args[0].toString());
+//                        if (Math.random() > 0.6 && !submitted && Senders.getReceiverCount() == 2) {
+//                            submitted = true;
+//                            Senders.sendText("1086230229@chatroom", "Chatroom");
+//                            Senders.sendText("xwxwxw1235", "xw");
+//                            Senders.log("log");
+//                            Senders.sendTextToAll("ToAll");
+//                            XposedBridge.log("Jobs submitted!");
+//                        }
+//                    }
+//                }
 
             }
 
@@ -90,11 +92,16 @@ public class Main implements IXposedHookLoadPackage {
                         if (message == null){
                             continue;
                         }
-                        if (message.createTime > lastSend && message.id == null){
+                        XposedBridge.log(message.toString());
+                        if (message.createTime >lastSend){
                             lastSend = message.createTime;
-                            //Trigger do job
-                            Senders.doOneJob();
-                            break;
+                            if (Senders.doOneJob()){
+                                break;
+                            } else if (message.content.startsWith("@@")){
+                                XposedBridge.log("@@");
+                                Senders.sendTextToAll("#######\n" + message.id + "\n" + message.content.substring(2));
+                                Senders.doOneJob();
+                            }
                         }
                     }
                 }

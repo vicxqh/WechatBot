@@ -5,6 +5,8 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 
+import de.robv.android.xposed.XposedBridge;
+
 /**
  * Created by xw on 2015/11/19.
  */
@@ -34,14 +36,20 @@ public class Senders {
         return textSenderMap.size();
     }
 
-    public static void doOneJob(){
+    public static boolean doOneJob(){
+        XposedBridge.log("Checking jobs..");
         if (jobs.size() > 0){
             Intent intent = jobs.poll();
             if (intent instanceof  TextIntent){
                 TextSender sender = textSenderMap.get(((TextIntent)intent).talker);
                 sender.send(((TextIntent)intent).content);
+                return true;
+            } else {
+                return false;
             }
         }
+        XposedBridge.log("No job to do.");
+        return false;
     }
 
     /**
