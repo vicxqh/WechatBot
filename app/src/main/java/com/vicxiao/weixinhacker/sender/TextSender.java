@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import de.robv.android.xposed.XposedBridge;
+import de.robv.android.xposed.XposedHelpers;
 
 
 /**
@@ -26,9 +27,12 @@ public class TextSender implements ISender<String>{
             XposedBridge.log("TextSender.sender is null");
             return;
         }
-        XposedBridge.log("Sending message to [" + this.talker +"]");
         try {
-            XposedBridge.log("Try send");
+            XposedBridge.log("Setting talker name");
+            XposedHelpers.setObjectField(sender, "kbO", talker);
+            Object kaS = XposedHelpers.getObjectField(sender, "kaS");
+            XposedHelpers.setObjectField(kaS, "field_username", talker);
+            XposedBridge.log("Sending message to [" + this.talker +"]");
             senderMethod.invoke(sender, content);
         } catch (IllegalAccessException e) {
             e.printStackTrace();

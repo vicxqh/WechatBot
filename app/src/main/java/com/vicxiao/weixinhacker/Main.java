@@ -1,9 +1,13 @@
 package com.vicxiao.weixinhacker;
 
+import android.database.Cursor;
+
 import com.vicxiao.weixinhacker.sender.Senders;
 import com.vicxiao.weixinhacker.sender.TextSender;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
@@ -18,7 +22,7 @@ import static de.robv.android.xposed.XposedHelpers.findClass;
  * Created by xw on 2015/11/13.
  */
 public class Main implements IXposedHookLoadPackage {
-    boolean tried = false;
+    boolean submitted = false;
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam loadPackageParam) throws Throwable {
@@ -52,19 +56,45 @@ public class Main implements IXposedHookLoadPackage {
         });
     }
 
+    static int lastSend = -1;
     private void loadTrigger(XC_LoadPackage.LoadPackageParam loadPackageParam) {
         findAndHookMethod("com.tencent.mm.aw.g", loadPackageParam.classLoader, "rawQuery", String.class, String[].class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
 //                XposedBridge.log("rawQuery");
+//                XposedBridge.log(param.args[0].toString());
                 if (param.args != null && param.args.length > 0) {
                     if (param.args[0].toString().startsWith("select * from message")) {
-                        if (Math.random() > 0.6 && !tried && Senders.getReceiverCount() == 2) {
-                            tried = true;
+//                        XposedBridge.log(param.args[0].toString());
+                        if (Math.random() > 0.6 && !submitted && Senders.getReceiverCount() == 2) {
+                            submitted = true;
                             Senders.sendText("1086230229@chatroom", "Chatroom");
                             Senders.sendText("xwxwxw1235", "xw");
                             Senders.log("log");
                             Senders.sendTextToAll("ToAll");
+                            XposedBridge.log("Jobs submitted!");
+                        }
+                    }
+                }
+
+            }
+
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                Cursor result = (Cursor) param.getResult();
+                if (result != null && param.args[0].toString().startsWith("select * from message")) {
+//                    XposedBridge.log("++++++++++++++++++++++++++");
+//                    XposedBridge.log(parseCursor(result));
+//                    XposedBridge.log("++++++++++++++++++++++++++");
+                    List<Message> messages = getMessage(result);
+                    for (Message message : messages) {
+                        if (message == null){
+                            continue;
+                        }
+                        if (message.createTime > lastSend && message.id == null){
+                            lastSend = message.createTime;
+                            //Trigger do job
+                            Senders.doOneJob();
+                            break;
                         }
                     }
                 }
@@ -112,5 +142,93 @@ public class Main implements IXposedHookLoadPackage {
                 return false;
             }
         });
+    }
+
+    static class Message {
+        int createTime;
+        String talker;
+        String id; // null means send by myself
+        String content;
+
+        public Message(int createTime, String talker, String id, String content) {
+            this.createTime = createTime;
+            this.talker = talker;
+            this.id = id;
+            this.content = content;
+        }
+
+        @Override
+        public String toString(){
+            return "CreateTime["+this.createTime+"]" + "\t talker["+ this.talker +"]" + "\tID["+this.id +"]"+"\tContent["+this.content+"]\n";
+        }
+    }
+
+    private static Message last = null;
+    private static List<Message> getMessage(Cursor cursor) {
+        List<Message> result = new ArrayList<>();
+        if (cursor.moveToFirst()) {
+            do {
+                int createTime = cursor.getInt(cursor.getColumnIndex("createTime"));
+                String talker = cursor.getString(cursor.getColumnIndex("talker"));
+                String s = cursor.getString(cursor.getColumnIndex("content"));
+                String[] ss = s.split(":\n");
+                String id = null;
+                String content;
+                if (ss.length != 2){
+                    content = s;
+                } else {
+                    id = ss[0];
+                    content = ss[1];
+                }
+
+                Message m = new Message(createTime, talker,id, content);
+                //ignore duplicated messages
+                if (last != null && last.createTime >= m.createTime){
+                    continue;
+                }
+                last = m;
+                result.add(m);
+            } while (cursor.moveToNext());
+        }
+        return result;
+    }
+
+    private static String parseCursor(Cursor cursor) {
+        StringBuilder sb = new StringBuilder();
+        String[] columNames = cursor.getColumnNames();
+        if (columNames != null && columNames.length > 0) {
+            for (String columName : columNames) {
+                sb.append(columName + "\t");
+            }
+            sb.append("\n");
+        }
+        if (cursor.moveToFirst()) {
+            do {
+                for (int i = 0; i < cursor.getColumnCount(); i++) {
+                    switch (cursor.getType(i)) {
+                        case Cursor.FIELD_TYPE_NULL:
+                            sb.append("NULL");
+                            break;
+                        case Cursor.FIELD_TYPE_INTEGER:
+                            sb.append(cursor.getInt(i));
+                            break;
+                        case Cursor.FIELD_TYPE_FLOAT:
+                            sb.append(cursor.getFloat(i));
+                            break;
+                        case Cursor.FIELD_TYPE_STRING:
+                            sb.append(cursor.getString(i));
+                            break;
+                        case Cursor.FIELD_TYPE_BLOB:
+                            sb.append(cursor.getBlob(i));
+                            break;
+                    }
+                    sb.append("\t");
+                }
+                sb.append("\n");
+            } while (cursor.moveToNext());
+        }
+        // resotre to first
+        cursor.moveToFirst();
+        return sb.toString();
     }
 }
