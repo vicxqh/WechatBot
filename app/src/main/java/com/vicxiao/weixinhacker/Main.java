@@ -28,58 +28,16 @@ public class Main implements IXposedHookLoadPackage {
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam loadPackageParam) throws Throwable {
         if (loadPackageParam.packageName.equals("com.tencent.mm")) {
 //            XposedBridge.log("WechatBot loading...!");
-//            loadTextSender(loadPackageParam);
             loadTrigger(loadPackageParam);
 //            XposedBridge.log("WechatBot loaded!");
-//            hookLogger(loadPackageParam);
-
             loadTextSender(loadPackageParam);
 
         }
     }
 
-    private void hookLogger(XC_LoadPackage.LoadPackageParam loadPackageParam) {
-        Class wechatLogClass = findClass("com.tencent.mm.sdk.platformtools.v", loadPackageParam.classLoader);
-        XposedBridge.hookAllMethods(wechatLogClass, "d", new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                int i = 0;
-                XposedBridge.log("----------------------");
-                for (Object arg : param.args) {
-                    if (arg != null) {
-                        XposedBridge.log(arg.toString());
-                    } else {
-                        XposedBridge.log("XW_NULL");
-                    }
-                }
-            }
-        });
-    }
-
     static int lastSend = -1;
     private void loadTrigger(XC_LoadPackage.LoadPackageParam loadPackageParam) {
         findAndHookMethod("com.tencent.mm.aw.g", loadPackageParam.classLoader, "rawQuery", String.class, String[].class, new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-//                XposedBridge.log("rawQuery");
-//                XposedBridge.log(param.args[0].toString());
-
-
-//                if (param.args != null && param.args.length > 0) {
-//                    if (param.args[0].toString().startsWith("select * from message")) {
-////                        XposedBridge.log(param.args[0].toString());
-//                        if (Math.random() > 0.6 && !submitted && Senders.getReceiverCount() == 2) {
-//                            submitted = true;
-//                            Senders.sendText("1086230229@chatroom", "Chatroom");
-//                            Senders.sendText("xwxwxw1235", "xw");
-//                            Senders.log("log");
-//                            Senders.sendTextToAll("ToAll");
-//                            XposedBridge.log("Jobs submitted!");
-//                        }
-//                    }
-//                }
-
-            }
 
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 Cursor result = (Cursor) param.getResult();
