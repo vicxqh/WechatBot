@@ -1,7 +1,7 @@
 # WechatBot
 ##A wechat robot running on android devices.
 
-Based on [xposed framework](https://github.com/rovo89/XposedBridge/wiki/Development-tutorial) and this specific [wechat](http://pan.baidu.com/s/1kTIXCRt) version, I plan to implement a bot that can:
+Based on [xposed framework](https://github.com/rovo89/XposedBridge/wiki/Development-tutorial) and this specific [wechat](https://github.com/xiaowei1235/WechatBot/blob/master/weixin637android660.apk) version, I plan to implement a bot that can:
 
 be informed when received new message of :
 - [x] Text
