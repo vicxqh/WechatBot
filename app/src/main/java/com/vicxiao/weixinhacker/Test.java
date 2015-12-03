@@ -1,18 +1,16 @@
 package com.vicxiao.weixinhacker;
 
-import com.vicxiao.weixinhacker.sender.TextSender;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
+import com.vicxiao.weixinhacker.listener.Listeners;
+import com.vicxiao.weixinhacker.listener.MessageListener;
+import com.vicxiao.weixinhacker.message.Message;
+import com.vicxiao.weixinhacker.query.Query;
+import com.vicxiao.weixinhacker.sender.Senders;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
-import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
-import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
-import static de.robv.android.xposed.XposedHelpers.findClass;
 
 /**
  * Created by xw on 2015/11/14.
@@ -23,6 +21,23 @@ public class Test implements IXposedHookLoadPackage {
         if (!loadPackageParam.packageName.equals("com.tencent.mm")) {
             return;
         }
+        LoadPackageHanlder.initQuery(loadPackageParam);
+        LoadPackageHanlder.loadMessageListener(loadPackageParam);
+        LoadPackageHanlder.loadTextSender(loadPackageParam);
+        Senders.start();
+
+        Listeners.addMessageListener(new MessageListener() {
+            @Override
+            public void onNewMessage(Message message) {
+                XposedBridge.log("In listener + "+ message.toString());
+                if (message.getContent().equalsIgnoreCase("Go") ){
+                    for (int i = 0; i < 5; i++){
+                        Senders.sendText("xwxwxw1235", "Xw" + i);
+                        Senders.sendText("658998013@chatroom", "chatRoom" + i);
+                    }
+                }
             }
+        });
+    }
 
 }

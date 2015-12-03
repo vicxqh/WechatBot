@@ -13,16 +13,14 @@ import de.robv.android.xposed.XposedHelpers;
 public class TextSender implements ISender<String>{
     private Object sender = null;
     private Method senderMethod = null;
-    private String talker = null;
 
-    public TextSender(Object sender, Method senderMethod, String talker) {
+    public TextSender(Object sender, Method senderMethod) {
         this.sender = sender;
         this.senderMethod = senderMethod;
-        this.talker = talker;
     }
 
     @Override
-    public void send(String content) {
+    public void send(String talker, String content) {
         if (sender == null) {
             XposedBridge.log("TextSender.sender is null");
             return;
@@ -32,8 +30,9 @@ public class TextSender implements ISender<String>{
             XposedHelpers.setObjectField(sender, "kbO", talker);
             Object kaS = XposedHelpers.getObjectField(sender, "kaS");
             XposedHelpers.setObjectField(kaS, "field_username", talker);
-            XposedBridge.log("Sending message to [" + this.talker +"]");
+            XposedBridge.log("Sending message to [" + talker + "]");
             senderMethod.invoke(sender, content);
+            XposedBridge.log("Sent message to [" + talker + "]");
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } catch (InvocationTargetException e) {
