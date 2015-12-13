@@ -32,7 +32,7 @@ public class Test implements IXposedHookLoadPackage {
             public void onNewMessage(Message message) {
                 XposedBridge.log("In listener + "+ message.toString());
                 if (message.getContent().equalsIgnoreCase("Go") ){
-                    for (int i = 0; i < 1; i++){
+                    for (int i = 0; i < 10; i++){
                         Senders.sendText("xwxwxw1235", "Xw" + i);
                         Senders.sendText("658998013@chatroom", "chatRoom" + i);
                     }

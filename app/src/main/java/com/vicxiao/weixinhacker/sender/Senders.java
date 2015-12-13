@@ -14,10 +14,8 @@ import de.robv.android.xposed.XposedBridge;
 public class Senders {
     public volatile static TextSender textSender = null;
 
-//    public static final Object sendingLock = new Object();
-    //Guardedby sendingLock
     public volatile static TextIntent sending= null;
-    public static final Object SIGNAL = new Object();
+
 
     public static void start() {
         XposedBridge.log("Start worker");
@@ -43,8 +41,7 @@ public class Senders {
                                 // Other types of message
                             }
                         }else {
-                            XposedBridge.log("wait");
-                            SIGNAL.wait();
+                            Thread.sleep(500);
                         }
 
                     } catch (InterruptedException e) {
