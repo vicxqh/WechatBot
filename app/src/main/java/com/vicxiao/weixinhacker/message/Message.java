@@ -9,7 +9,7 @@ import java.util.List;
  * Created by vic on 15-12-3.
  */
 public class Message {
-    private int createTime;
+    private long createTime;
     private String talker;
     private String id; // null means send by myself
     private String content;
@@ -26,12 +26,12 @@ public class Message {
         return id;
     }
 
-    public int getCreateTime() {
+    public long getCreateTime() {
         return createTime;
     }
 
 
-    public Message(int createTime, String talker, String id, String content) {
+    public Message(long createTime, String talker, String id, String content) {
         this.createTime = createTime;
         this.talker = talker;
         this.id = id;
@@ -44,13 +44,13 @@ public class Message {
     }
 
     private static Message last = null;
-    public static int lastSend = -1;
+    public static long lastSend = -1;
 
     public static List<Message> getMessage(Cursor cursor) {
         List<Message> result = new ArrayList<>();
         if (cursor.moveToFirst()) {
             do {
-                int createTime = cursor.getInt(cursor.getColumnIndex("createTime"));
+                long createTime = cursor.getLong(cursor.getColumnIndex("createTime"));
                 String talker = cursor.getString(cursor.getColumnIndex("talker"));
                 String s = cursor.getString(cursor.getColumnIndex("content"));
                 String[] ss = s.split(":\n");
