@@ -22,6 +22,7 @@ public class Test implements IXposedHookLoadPackage {
             return;
         }
         LoadPackageHanlder.initQuery(loadPackageParam);
+        // If you want to send message, you must also call loadMessageListener.
         LoadPackageHanlder.loadMessageListener(loadPackageParam);
         LoadPackageHanlder.loadTextSender(loadPackageParam);
         Senders.start();
@@ -31,7 +32,7 @@ public class Test implements IXposedHookLoadPackage {
             public void onNewMessage(Message message) {
                 XposedBridge.log("In listener + "+ message.toString());
                 if (message.getContent().equalsIgnoreCase("Go") ){
-                    for (int i = 0; i < 5; i++){
+                    for (int i = 0; i < 1; i++){
                         Senders.sendText("xwxwxw1235", "Xw" + i);
                         Senders.sendText("658998013@chatroom", "chatRoom" + i);
                     }

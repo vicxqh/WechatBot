@@ -101,14 +101,16 @@ public class LoadPackageHanlder {
                         XposedBridge.log(message.toString());
                         if (message.getCreateTime() >Message.lastSend){
                             Message.lastSend = message.getCreateTime();
-
-//                            if (Senders.sending != null){
-//                                synchronized (Senders.sendingLock){
-//                                    if (Senders.sending.getContent().equals(message.getContent()) && Senders.sending.getTalker().equals(message.getTalker())){
-//                                        Senders.sending = null;
-//                                    }
-//                                }
-//                            }
+                            synchronized (Senders.SIGNAL){
+                                if (Senders.sending != null){
+                                    XposedBridge.log("Message sending");
+                                    if (Senders.sending.getTalker().equals(message.getTalker()) && Senders.sending.getContent().equals(message.getContent())){
+                                        Senders.sending = null;
+                                        Senders.SIGNAL.notifyAll();
+                                        XposedBridge.log("Signal all");
+                                    }
+                                }
+                            }
                             Listeners.handleNewMessage(message);
                         }
                     }

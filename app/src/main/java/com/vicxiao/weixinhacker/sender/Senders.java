@@ -17,6 +17,7 @@ public class Senders {
 //    public static final Object sendingLock = new Object();
     //Guardedby sendingLock
     public volatile static TextIntent sending= null;
+    public static final Object SIGNAL = new Object();
 
     public static void start() {
         XposedBridge.log("Start worker");
@@ -35,19 +36,16 @@ public class Senders {
                                     XposedBridge.log("TextSender not initialized! From doOneJob");
                                 }
                                 textSender.send(((TextIntent) intent).talker, ((TextIntent) intent).content);
-//                                synchronized (sendingLock){
-                                    sending = (TextIntent) intent;
-//                                }
+                                sending = (TextIntent) intent;
+
                             } else {
                                 //TODO
                                 // Other types of message
                             }
                         }else {
-//                            sendingLock.wait();
-                            Thread.sleep(1000);
-                            sending = null;
+                            XposedBridge.log("wait");
+                            SIGNAL.wait();
                         }
-
 
                     } catch (InterruptedException e) {
                         XposedBridge.log(e.toString());
