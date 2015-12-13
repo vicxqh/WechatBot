@@ -52,45 +52,4 @@ public class SampleMain implements IXposedHookLoadPackage {
         });
     }
 
-
-
-
-    static String parseCursor(Cursor cursor) {
-        StringBuilder sb = new StringBuilder();
-        String[] columNames = cursor.getColumnNames();
-        if (columNames != null && columNames.length > 0) {
-            for (String columName : columNames) {
-                sb.append(columName + "\t");
-            }
-            sb.append("\n");
-        }
-        if (cursor.moveToFirst()) {
-            do {
-                for (int i = 0; i < cursor.getColumnCount(); i++) {
-                    switch (cursor.getType(i)) {
-                        case Cursor.FIELD_TYPE_NULL:
-                            sb.append("NULL");
-                            break;
-                        case Cursor.FIELD_TYPE_INTEGER:
-                            sb.append(cursor.getInt(i));
-                            break;
-                        case Cursor.FIELD_TYPE_FLOAT:
-                            sb.append(cursor.getFloat(i));
-                            break;
-                        case Cursor.FIELD_TYPE_STRING:
-                            sb.append(cursor.getString(i));
-                            break;
-                        case Cursor.FIELD_TYPE_BLOB:
-                            sb.append(cursor.getBlob(i));
-                            break;
-                    }
-                    sb.append("\t");
-                }
-                sb.append("\n");
-            } while (cursor.moveToNext());
-        }
-        // resotre to first
-        cursor.moveToFirst();
-        return sb.toString();
-    }
 }

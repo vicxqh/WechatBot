@@ -1,5 +1,7 @@
 package com.vicxiao.weixinhacker.sender;
 
+import com.vicxiao.weixinhacker.message.TextMessage;
+
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
@@ -41,6 +43,7 @@ public class Senders {
                                 // Other types of message
                             }
                         }else {
+                            XposedBridge.log("Sender is sleeping ");
                             Thread.sleep(500);
                         }
 
@@ -89,6 +92,11 @@ public class Senders {
         if (talker == null || content == null) {
             return;
         }
+
+//        if (content.startsWith("@")){
+//            int index = content.charAt(TextMessage.AT_SEPARATOR);
+//            content = TextMessage.at("X") + content; // Hack to make sure the first person will be at
+//        }
 
         if (textSender != null) {
             try {

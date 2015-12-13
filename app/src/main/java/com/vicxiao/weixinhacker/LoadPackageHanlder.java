@@ -2,14 +2,18 @@ package com.vicxiao.weixinhacker;
 
 import android.database.Cursor;
 
+import com.vicxiao.weixinhacker.listener.Event;
 import com.vicxiao.weixinhacker.listener.Listeners;
 import com.vicxiao.weixinhacker.message.Message;
+import com.vicxiao.weixinhacker.message.TextMessage;
 import com.vicxiao.weixinhacker.query.Query;
 import com.vicxiao.weixinhacker.sender.Senders;
 import com.vicxiao.weixinhacker.sender.TextSender;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
@@ -79,7 +83,7 @@ public class LoadPackageHanlder {
                 if (result == null){
                     cursor.append("NULL");
                 } else {
-                    cursor.append(SampleMain.parseCursor(result));
+                    cursor.append(Query.parseCursor(result));
                 }
                 XposedBridge.log(cursor.toString());
 
@@ -93,25 +97,59 @@ public class LoadPackageHanlder {
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 Cursor result = (Cursor) param.getResult();
                 if (result != null && param.args[0].toString().startsWith("select * from message")) {
-                    List<Message> messages = Message.getMessage(result);
-                    for (Message message : messages) {
-                        if (message == null){
-                            continue;
-                        }
-                        XposedBridge.log(message.toString());
-                        if (message.getCreateTime() >Message.lastSend){
-                            Message.lastSend = message.getCreateTime();
-                                if (Senders.sending != null){
-                                    XposedBridge.log("Message sending");
-                                    if (Senders.sending.getTalker().equals(message.getTalker()) && Senders.sending.getContent().equals(message.getContent())){
-                                        Senders.sending = null;
-                                        XposedBridge.log("Signal all");
+                    XposedBridge.log(Query.parseCursor(result));
+                    Message.Type type = Message.getType(result);
+                    switch (type){
+                        case TEXT_MESSAGE:
+                            List<TextMessage> textMessages = Message.getTextMessage(result);
+                            for (TextMessage message : textMessages) {
+                                if (message == null){
+                                    continue;
+                                }
+                                if (message.getCreateTime() >Message.lastSend){
+                                    Message.lastSend = message.getCreateTime();
+                                    if (Senders.sending != null){
+                                        if (Senders.sending.getTalker().equals(message.getTalker()) && Senders.sending.getContent().equals(message.getContent())){
+                                            Senders.sending = null;
+                                            XposedBridge.log("Signal all");
+                                        }
+                                    }
+                                    Listeners.handleNewTextMessage(message);
+                                }
+                            }
+                            break;
+                        case EVENT:
+                            textMessages = Message.getTextMessage(result);
+                            for (Message message : textMessages) {
+                                if (message == null) {
+                                    continue;
+                                }
+                                if (message.getCreateTime() >Message.lastSend) {
+                                    Message.lastSend = message.getCreateTime();
+                                    Pattern inviteMemberPattern = Pattern.compile("(.*)邀请(.*)加入了群聊");
+                                    Matcher matcher = inviteMemberPattern.matcher(message.getContent());
+                                    if (matcher.find()){
+                                        XposedBridge.log(matcher.group(1) + "[invite]" + matcher.group(2));
+                                        Event.Builder builder = new Event.Builder();
+                                        builder.setChatRoom(message.getTalker());
+                                        builder.setRecommender(matcher.group(1));
+                                        builder.setDisplayName(matcher.group(2));
+                                        builder.setType(Event.Type.NEW_MEMBER);
+                                        Listeners.handleNewEvent(builder.build());
                                     }
                                 }
-                            Listeners.handleNewMessage(message);
-                        }
-                    }
+                            }
 
+                            break;
+                        case AUDIO_MESSAGE:
+                            XposedBridge.log("Received audio message");
+                            XposedBridge.log(Query.parseCursor(result));
+                            break;
+                        case UNKNOWN:
+                            XposedBridge.log("Unknown message type:");
+                            XposedBridge.log(Query.parseCursor(result));
+                            break;
+                    }
                 }
 
             }

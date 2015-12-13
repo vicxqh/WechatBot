@@ -1,5 +1,7 @@
 package com.vicxiao.weixinhacker.sender;
 
+import com.vicxiao.weixinhacker.message.TextMessage;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 

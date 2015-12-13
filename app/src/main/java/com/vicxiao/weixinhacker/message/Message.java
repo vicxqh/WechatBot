@@ -5,13 +5,15 @@ import android.database.Cursor;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.robv.android.xposed.XposedBridge;
+
 /**
  * Created by vic on 15-12-3.
  */
 public class Message {
     private long createTime;
     private String talker;
-    private String id; // null means send by myself
+    private String id; // null means send by myself or event
     private String content;
 
     public String getContent() {
@@ -31,7 +33,7 @@ public class Message {
     }
 
 
-    public Message(long createTime, String talker, String id, String content) {
+    protected Message(long createTime, String talker, String id, String content) {
         this.createTime = createTime;
         this.talker = talker;
         this.id = id;
@@ -46,8 +48,8 @@ public class Message {
     private static Message last = null;
     public static long lastSend = -1;
 
-    public static List<Message> getMessage(Cursor cursor) {
-        List<Message> result = new ArrayList<>();
+    public static List<TextMessage> getTextMessage(Cursor cursor) {
+        List<TextMessage> result = new ArrayList<>();
         if (cursor.moveToFirst()) {
             do {
                 long createTime = cursor.getLong(cursor.getColumnIndex("createTime"));
@@ -63,9 +65,9 @@ public class Message {
                     content = ss[1];
                 }
 
-                Message m = new Message(createTime, talker,id, content);
+                TextMessage m = new TextMessage(createTime, talker,id, content);
                 //ignore duplicated messages
-                if (last != null && last.createTime >= m.createTime){
+                if (last != null && last.createTime >= m.getCreateTime()){
                     continue;
                 }
                 last = m;
@@ -73,5 +75,31 @@ public class Message {
             } while (cursor.moveToNext());
         }
         return result;
+    }
+
+    public static Type getType(Cursor cursor){
+        Type type = Type.UNKNOWN;
+        if (cursor.moveToFirst()) {
+            int index = cursor.getColumnIndex("type");
+            if (index != -1){
+                int typeInt = cursor.getInt(index);
+                switch (typeInt){
+                    case 1:
+                        type = Type.TEXT_MESSAGE;
+                        break;
+                    case 34:
+                        type = Type.AUDIO_MESSAGE;
+                        break;
+                    case 10000:
+                        type = Type.EVENT;
+                        break;
+                }
+            }
+        }
+        return type;
+    }
+
+    public enum Type {
+        TEXT_MESSAGE, AUDIO_MESSAGE, EVENT, UNKNOWN
     }
 }
