@@ -99,6 +99,14 @@ public class Message {
         return type;
     }
 
+    public static int getStatus(Cursor cursor){
+        if (cursor.moveToFirst()) {
+            int index = cursor.getColumnIndex("status");
+            return cursor.getInt(index);
+        }
+        return -1;
+    }
+
     public enum Type {
         TEXT_MESSAGE, AUDIO_MESSAGE, EVENT, UNKNOWN
     }

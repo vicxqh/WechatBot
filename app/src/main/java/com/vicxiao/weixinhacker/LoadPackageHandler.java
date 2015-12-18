@@ -24,7 +24,10 @@ import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 /**
  * Created by vic on 15-11-29.
  */
-public class LoadPackageHanlder {
+public class LoadPackageHandler {
+
+    public static ClassLoader classLoader;
+
     public static void loadTextSender(XC_LoadPackage.LoadPackageParam loadPackageParam) {
         findAndHookMethod("com.tencent.mm.ui.chatting.ChattingUI$a", loadPackageParam.classLoader, "EI", java.lang.String.class, new XC_MethodHook() {
             @Override
@@ -99,6 +102,7 @@ public class LoadPackageHanlder {
                 if (result != null && param.args[0].toString().startsWith("select * from message")) {
                     XposedBridge.log(Query.parseCursor(result));
                     Message.Type type = Message.getType(result);
+                    int status = Message.getStatus(result);
                     switch (type){
                         case TEXT_MESSAGE:
                             List<TextMessage> textMessages = Message.getTextMessage(result);
@@ -142,8 +146,9 @@ public class LoadPackageHanlder {
 
                             break;
                         case AUDIO_MESSAGE:
-                            XposedBridge.log("Received audio message");
-                            XposedBridge.log(Query.parseCursor(result));
+                            if (status == 2 || status == 3){
+
+                            }
                             break;
                         case UNKNOWN:
                             XposedBridge.log("Unknown message type:");
@@ -155,4 +160,18 @@ public class LoadPackageHanlder {
             }
         });
     }
+//    public static void testAudio(XC_LoadPackage.LoadPackageParam loadPackageParam) {
+//        findAndHookMethod("com.tencent.mm.aw.g", loadPackageParam.classLoader, "rawQuery", String.class, String[].class, new XC_MethodHook() {
+//
+//            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+//                Cursor result = (Cursor) param.getResult();
+//                if (result != null && param.args[0].toString().contains("FROM voiceinfo")) {
+//                    XposedBridge.log(param.args[0].toString());
+//                    XposedBridge.log(Query.parseCursor(result));
+//                }
+//
+//
+//            }
+//        });
+//    }
 }

@@ -26,10 +26,10 @@ public class Test implements IXposedHookLoadPackage {
         if (!loadPackageParam.packageName.equals("com.tencent.mm")) {
             return;
         }
-        LoadPackageHanlder.initQuery(loadPackageParam);
+        LoadPackageHandler.initQuery(loadPackageParam);
         // If you want to send message, you must also call loadMessageListener.
-        LoadPackageHanlder.loadMessageListener(loadPackageParam);
-        LoadPackageHanlder.loadTextSender(loadPackageParam);
+        LoadPackageHandler.loadMessageListener(loadPackageParam);
+        LoadPackageHandler.loadTextSender(loadPackageParam);
         Senders.start();
 
         Listeners.addTextMessageListener(new TextMessageListener() {

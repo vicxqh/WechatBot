@@ -1,12 +1,5 @@
 package com.vicxiao.weixinhacker;
 
-import android.database.Cursor;
-
-import com.vicxiao.weixinhacker.sender.Senders;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
@@ -29,7 +22,7 @@ public class SampleMain implements IXposedHookLoadPackage {
 //            XposedBridge.log("WechatBot loaded!");
 //            hookLogger(loadPackageParam);
 
-            LoadPackageHanlder.loadTextSender(loadPackageParam);
+            LoadPackageHandler.loadTextSender(loadPackageParam);
 
         }
     }
