@@ -29,6 +29,23 @@ import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
  */
 public class LoadPackageHandler {
 
+    public static class AudioHooker extends XC_MethodHook{
+        public volatile boolean isSending = false;
+
+        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+            synchronized (this){
+                if (Senders.sending != null && Senders.sending instanceof Senders.AudioIntent && !isSending ){
+                    XposedBridge.log("Try send in rawQuery");
+                    isSending = true;
+                    Senders.audioSender.send(Senders.sending.getTalker(), ((Senders.AudioIntent) Senders.sending).getContent());
+                    XposedBridge.log("Try send in rawQuery 2");
+                }
+            }
+        }
+    }
+
+    public final static AudioHooker audioHooker = new AudioHooker();
+
     public static void loadSenders(final XC_LoadPackage.LoadPackageParam loadPackageParam) {
         findAndHookMethod("com.tencent.mm.ui.chatting.ChattingUI$a", loadPackageParam.classLoader, "EI", java.lang.String.class, new XC_MethodHook() {
             @Override
@@ -65,8 +82,8 @@ public class LoadPackageHandler {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
-                if (Query.method == null){
-                    Query.method  = (Method) param.method;
+                if (Query.method == null) {
+                    Query.method = (Method) param.method;
                     Query.receiver = param.thisObject;
                 }
             }
@@ -77,7 +94,7 @@ public class LoadPackageHandler {
                 //Log args
                 StringBuilder argString = new StringBuilder();
                 for (Object arg : param.args) {
-                    if (arg == null){
+                    if (arg == null) {
                         argString.append("NULL" + "~~~");
                     } else {
                         argString.append(arg.toString() + "~~~");
@@ -86,7 +103,7 @@ public class LoadPackageHandler {
 
                 XposedBridge.log(argString.substring(0, argString.length() - 3));
                 StringBuilder cursor = new StringBuilder();
-                if (result == null){
+                if (result == null) {
                     cursor.append("NULL");
                 } else {
                     cursor.append(Query.parseCursor(result));
@@ -101,21 +118,37 @@ public class LoadPackageHandler {
     public static void testAudioSender(XC_LoadPackage.LoadPackageParam loadPackageParam) {
         //this is used for text retransmission
 
+        findAndHookMethod("com.tencent.mm.aw.g", loadPackageParam.classLoader, "rawQuery", String.class, String[].class, audioHooker);
         findAndHookMethod("com.tencent.mm.aw.g", loadPackageParam.classLoader, "rawQuery", String.class, String[].class, new XC_MethodHook() {
-
-            private boolean mSending = false;
+            @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 Cursor result = (Cursor) param.getResult();
-                if (result != null && param.args[0].toString().startsWith("select * from message") && !mSending) {
-                    if (Senders.sending != null && Senders.sending instanceof Senders.AudioIntent ){
-                        XposedBridge.log("Try send in rawQuery");
-                        Senders.audioSender.send(Senders.sending.getTalker(), ((Senders.AudioIntent) Senders.sending).getContent());
-                        mSending = true;
-                    }
-                }
+                if (result != null && param.args[0].toString().contains("FROM voiceinfo")){
+                    XposedBridge.log(param.args[0].toString());
+                    XposedBridge.log(Query.parseCursor(result));
 
+                }
+                if (result != null && param.args[0].toString().equals("SELECT FileName, User, MsgId, NetOffset, FileNowSize, TotalLen, Status, CreateTime, LastModifyTime, ClientId, VoiceLength, MsgLocalId, Human, reserved1, reserved2, MsgSource FROM voiceinfo WHERE FileName= ?")
+                        && Senders.sending != null && Senders.sending instanceof Senders.AudioIntent){
+                    Senders.AudioIntent intent = (Senders.AudioIntent) Senders.sending;
+                    if (result.moveToFirst()){
+                        String fileName = result.getString(result.getColumnIndex("FileName"));
+                        String talker = result.getString(result.getColumnIndex("User"));
+                        int reserved1 = result.getInt(result.getColumnIndex("reserved1"));
+                        int reserved2 = result.getInt(result.getColumnIndex("reserved2"));
+                        if (intent.getContent().equals(fileName) && intent.getTalker().equals(talker)){
+                            // Might need a better lock
+                                XposedBridge.log("Audio signal all");
+                                Senders.sending = null;
+                                audioHooker.isSending = false;
+                        }
+                    }
+
+                }
             }
         });
+
+
 
         XposedHelpers.findAndHookMethod("com.tencent.mm.modelvoice.u", loadPackageParam.classLoader, "jH", String.class, new XC_MethodHook() {
             String sendFile = "";

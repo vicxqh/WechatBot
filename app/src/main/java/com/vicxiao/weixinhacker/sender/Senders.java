@@ -54,6 +54,7 @@ public class Senders {
                             }
                         }else {
 //                            XposedBridge.log("Sender is sleeping ");
+                            XposedBridge.log("Waiting:" + sending.getTalker() +"," +sending.getContent());
                             Thread.sleep(500);
                         }
 
@@ -145,7 +146,7 @@ public class Senders {
      * @param content
      */
     public static void sendAudio(String talker, String content){
-        if (talker == null || content == null){
+        if (talker == null || content == null || audioSender == null){
             return;
         }
 
