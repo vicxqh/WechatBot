@@ -4,9 +4,11 @@ import android.database.Cursor;
 
 import com.vicxiao.weixinhacker.listener.Event;
 import com.vicxiao.weixinhacker.listener.Listeners;
+import com.vicxiao.weixinhacker.message.AudioMessage;
 import com.vicxiao.weixinhacker.message.Message;
 import com.vicxiao.weixinhacker.message.TextMessage;
 import com.vicxiao.weixinhacker.query.Query;
+import com.vicxiao.weixinhacker.sender.AudioSender;
 import com.vicxiao.weixinhacker.sender.Senders;
 import com.vicxiao.weixinhacker.sender.TextSender;
 
@@ -17,6 +19,7 @@ import java.util.regex.Pattern;
 
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
+import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
@@ -26,9 +29,7 @@ import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
  */
 public class LoadPackageHandler {
 
-    public static ClassLoader classLoader;
-
-    public static void loadTextSender(XC_LoadPackage.LoadPackageParam loadPackageParam) {
+    public static void loadSenders(final XC_LoadPackage.LoadPackageParam loadPackageParam) {
         findAndHookMethod("com.tencent.mm.ui.chatting.ChattingUI$a", loadPackageParam.classLoader, "EI", java.lang.String.class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
@@ -38,6 +39,8 @@ public class LoadPackageHandler {
                     Method method = (Method) param.method;
                     Object receiver = param.thisObject;
                     Senders.textSender = new TextSender(receiver, method);
+                    Senders.audioSender = new AudioSender(loadPackageParam);
+                    Senders.start();
                 }
             }
 
@@ -94,13 +97,58 @@ public class LoadPackageHandler {
             }
         });
     }
+
+    public static void testAudioSender(XC_LoadPackage.LoadPackageParam loadPackageParam) {
+        //this is used for text retransmission
+
+        findAndHookMethod("com.tencent.mm.aw.g", loadPackageParam.classLoader, "rawQuery", String.class, String[].class, new XC_MethodHook() {
+
+            private boolean mSending = false;
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                Cursor result = (Cursor) param.getResult();
+                if (result != null && param.args[0].toString().startsWith("select * from message") && !mSending) {
+                    if (Senders.sending != null && Senders.sending instanceof Senders.AudioIntent ){
+                        XposedBridge.log("Try send in rawQuery");
+                        Senders.audioSender.send(Senders.sending.getTalker(), ((Senders.AudioIntent) Senders.sending).getContent());
+                        mSending = true;
+                    }
+                }
+
+            }
+        });
+
+        XposedHelpers.findAndHookMethod("com.tencent.mm.modelvoice.u", loadPackageParam.classLoader, "jH", String.class, new XC_MethodHook() {
+            String sendFile = "";
+
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                super.beforeHookedMethod(param);
+                Object v = param.args[0];
+                String fileName = v.toString();
+                Object queryResult = param.getResult();
+                if (queryResult != null && !sendFile.equals(fileName)) {
+                    sendFile = fileName;
+                    int result = XposedHelpers.getIntField(queryResult, "status");
+                    XposedBridge.log("status: " + result);
+                    XposedHelpers.setIntField(queryResult, "bWK", 0);//read offset
+                    XposedHelpers.setIntField(queryResult, "status", 3);// status must be 3 for sending
+                    XposedHelpers.setObjectField(queryResult, "aBT", AudioSender.getTalkerName());
+                }
+                if (queryResult != null && sendFile.equals(fileName)) {
+                    int result = XposedHelpers.getIntField(queryResult, "status");
+                    XposedHelpers.setIntField(queryResult, "status", 3);
+                }
+            }
+        });
+    }
+
     public static void loadMessageListener(XC_LoadPackage.LoadPackageParam loadPackageParam) {
         findAndHookMethod("com.tencent.mm.aw.g", loadPackageParam.classLoader, "rawQuery", String.class, String[].class, new XC_MethodHook() {
 
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 Cursor result = (Cursor) param.getResult();
                 if (result != null && param.args[0].toString().startsWith("select * from message")) {
-                    XposedBridge.log(Query.parseCursor(result));
+                    //XposedBridge.log(Query.parseCursor(result));
                     Message.Type type = Message.getType(result);
                     int status = Message.getStatus(result);
                     switch (type){
@@ -147,7 +195,22 @@ public class LoadPackageHandler {
                             break;
                         case AUDIO_MESSAGE:
                             if (status == 2 || status == 3){
-
+                                List<AudioMessage> audioMessages = Message.getAudioMessage(result);
+                                for (AudioMessage audioMessage : audioMessages) {
+                                    if (audioMessage == null) {
+                                        continue;
+                                    }
+                                    if (audioMessage.getCreateTime() >Message.lastSend){
+                                        Message.lastSend = audioMessage.getCreateTime();
+                                        if (Senders.sending != null && audioMessage.status == 2){
+                                            Senders.sending = null;
+                                            XposedBridge.log("AudioMessage Signal all");
+                                        }
+                                        if (audioMessage.status == 3){
+                                            Listeners.handleNewAudioMessage(audioMessage);
+                                        }
+                                    }
+                                }
                             }
                             break;
                         case UNKNOWN:
@@ -160,18 +223,5 @@ public class LoadPackageHandler {
             }
         });
     }
-//    public static void testAudio(XC_LoadPackage.LoadPackageParam loadPackageParam) {
-//        findAndHookMethod("com.tencent.mm.aw.g", loadPackageParam.classLoader, "rawQuery", String.class, String[].class, new XC_MethodHook() {
-//
-//            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-//                Cursor result = (Cursor) param.getResult();
-//                if (result != null && param.args[0].toString().contains("FROM voiceinfo")) {
-//                    XposedBridge.log(param.args[0].toString());
-//                    XposedBridge.log(Query.parseCursor(result));
-//                }
-//
-//
-//            }
-//        });
-//    }
+
 }

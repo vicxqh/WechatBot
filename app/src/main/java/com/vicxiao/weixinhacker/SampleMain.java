@@ -22,7 +22,7 @@ public class SampleMain implements IXposedHookLoadPackage {
 //            XposedBridge.log("WechatBot loaded!");
 //            hookLogger(loadPackageParam);
 
-            LoadPackageHandler.loadTextSender(loadPackageParam);
+            LoadPackageHandler.loadSenders(loadPackageParam);
 
         }
     }

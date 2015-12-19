@@ -1,6 +1,8 @@
 package com.vicxiao.weixinhacker.listener;
 
+import com.vicxiao.weixinhacker.message.AudioMessage;
 import com.vicxiao.weixinhacker.message.Message;
+import com.vicxiao.weixinhacker.message.TextMessage;
 
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -10,6 +12,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public class Listeners {
     private static Set<TextMessageListener> textMessageListeners = new CopyOnWriteArraySet<>();
+    private static Set<AudioMessageListener> audioMessageListeners = new CopyOnWriteArraySet<>();
+
     private static Set<EventListener> eventListeners = new CopyOnWriteArraySet<>();
 
     public static void addEventListener(EventListener listener) {
@@ -31,9 +35,24 @@ public class Listeners {
         textMessageListeners.remove(listener);
     }
 
-    public static void handleNewTextMessage(Message message) {
+
+    public static void addAudioMessageListener(AudioMessageListener listener){
+        audioMessageListeners.add(listener);
+    }
+
+    public static void removeAudioMessageListener(AudioMessageListener listener){
+        audioMessageListeners.remove(listener);
+    }
+
+    public static void handleNewTextMessage(TextMessage message) {
         for (TextMessageListener textMessageListener : textMessageListeners) {
             textMessageListener.onNewMessage(message);
+        }
+    }
+
+    public static void handleNewAudioMessage(AudioMessage message){
+        for (AudioMessageListener audioMessageListener : audioMessageListeners) {
+            audioMessageListener.onNewMessage(message);
         }
     }
 

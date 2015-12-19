@@ -1,8 +1,12 @@
 package com.vicxiao.weixinhacker;
 
+import com.vicxiao.weixinhacker.listener.AudioMessageListener;
+import com.vicxiao.weixinhacker.listener.Listeners;
+import com.vicxiao.weixinhacker.message.AudioMessage;
 import com.vicxiao.weixinhacker.sender.Senders;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
+import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 /**
@@ -14,12 +18,21 @@ public class TestAudio implements IXposedHookLoadPackage {
         if (!loadPackageParam.packageName.equals("com.tencent.mm")) {
             return;
         }
-        LoadPackageHandler.classLoader = loadPackageParam.classLoader;
+
         LoadPackageHandler.initQuery(loadPackageParam);
         // If you want to send message, you must also call loadMessageListener.
         LoadPackageHandler.loadMessageListener(loadPackageParam);
-        LoadPackageHandler.loadTextSender(loadPackageParam);
-        Senders.start();
-//        LoadPackageHandler.testAudio(loadPackageParam);
+        LoadPackageHandler.loadSenders(loadPackageParam);
+        LoadPackageHandler.testAudioSender(loadPackageParam);
+        LoadPackageHandler.logCursor(loadPackageParam);
+
+        Listeners.addAudioMessageListener(new AudioMessageListener() {
+            @Override
+            public void onNewMessage(AudioMessage message) {
+                XposedBridge.log("XW:["+message.getTalker()+"]|["+ message.getContent());
+                Senders.sendText(message.getTalker(), "转发" + message.getId() + "的语音");
+                Senders.sendAudio(message.getTalker(), message.getContent());
+            }
+        });
     }
 }

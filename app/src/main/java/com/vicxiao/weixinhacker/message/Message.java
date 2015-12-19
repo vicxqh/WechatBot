@@ -3,6 +3,7 @@ package com.vicxiao.weixinhacker.message;
 import android.database.Cursor;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import de.robv.android.xposed.XposedBridge;
@@ -47,6 +48,35 @@ public class Message {
 
     private static Message last = null;
     public static long lastSend = -1;
+
+
+    public static List<AudioMessage> getAudioMessage(Cursor cursor){
+        List<AudioMessage> result = new LinkedList<>();
+        if (cursor.moveToFirst()){
+            do {
+                long createTime = cursor.getLong(cursor.getColumnIndex("createTime"));
+                String talker = cursor.getString(cursor.getColumnIndex("talker"));
+                String s = cursor.getString(cursor.getColumnIndex("content"));
+                String content = cursor.getString(cursor.getColumnIndex("imgPath"));
+                String[] ss = s.split(":");
+                String id = null;
+                if (ss.length > 0){
+                    id = ss[0];
+                }
+                int status = cursor.getInt(cursor.getColumnIndex("status"));
+
+
+                AudioMessage audioMessage = new AudioMessage(createTime, talker, id, content, status);
+                //ignore duplicated messages
+                if (last != null && last.createTime >= audioMessage.getCreateTime()){
+                    continue;
+                }
+                last = audioMessage;
+                result.add(audioMessage);
+            } while (cursor.moveToNext());
+        }
+        return result;
+    }
 
     public static List<TextMessage> getTextMessage(Cursor cursor) {
         List<TextMessage> result = new ArrayList<>();

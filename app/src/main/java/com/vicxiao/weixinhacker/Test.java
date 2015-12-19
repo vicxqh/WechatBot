@@ -9,6 +9,8 @@ import com.vicxiao.weixinhacker.message.TextMessage;
 import com.vicxiao.weixinhacker.query.Group;
 import com.vicxiao.weixinhacker.sender.Senders;
 
+import org.w3c.dom.Text;
+
 import java.util.List;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -29,12 +31,12 @@ public class Test implements IXposedHookLoadPackage {
         LoadPackageHandler.initQuery(loadPackageParam);
         // If you want to send message, you must also call loadMessageListener.
         LoadPackageHandler.loadMessageListener(loadPackageParam);
-        LoadPackageHandler.loadTextSender(loadPackageParam);
+        LoadPackageHandler.loadSenders(loadPackageParam);
         Senders.start();
 
         Listeners.addTextMessageListener(new TextMessageListener() {
             @Override
-            public void onNewMessage(Message message) {
+            public void onNewMessage(TextMessage message) {
 
                 if (message.getContent().startsWith("@ALL") && message.getTalker() != null && message.getTalker().indexOf('@') > 0) {
 

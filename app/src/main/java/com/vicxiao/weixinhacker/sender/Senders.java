@@ -15,8 +15,9 @@ import de.robv.android.xposed.XposedBridge;
  */
 public class Senders {
     public volatile static TextSender textSender = null;
+    public volatile static AudioSender audioSender = null;
 
-    public volatile static TextIntent sending= null;
+    public volatile static Intent sending= null;
 
 
     public static void start() {
@@ -34,16 +35,25 @@ public class Senders {
                             if (intent instanceof TextIntent) {
                                 if (textSender == null) {
                                     XposedBridge.log("TextSender not initialized! From doOneJob");
+                                    continue;
                                 }
                                 textSender.send(((TextIntent) intent).talker, ((TextIntent) intent).content);
-                                sending = (TextIntent) intent;
+                                sending = intent;
 
+                            } else if (intent instanceof AudioIntent){
+                                if (textSender == null) {
+                                    XposedBridge.log("AudioSender not initialized! From doOneJob");
+                                    continue;
+                                }
+                                XposedBridge.log("Try sending audio message");
+//                                audioSender.send(intent.getTalker(), ((AudioIntent) intent).getFileName());
+                                sending = intent;
                             } else {
                                 //TODO
                                 // Other types of message
                             }
                         }else {
-                            XposedBridge.log("Sender is sleeping ");
+//                            XposedBridge.log("Sender is sleeping ");
                             Thread.sleep(500);
                         }
 
@@ -56,7 +66,7 @@ public class Senders {
         worker.start();
     }
 
-    static abstract class Intent<T> {
+    public static abstract class Intent<T> {
         String talker;
         T content;
 
@@ -64,19 +74,37 @@ public class Senders {
             this.talker = talker;
             this.content = content;
         }
+
+        public String getTalker(){
+            return this.talker;
+        }
+
+        public T getContent(){
+            return this.content;
+        }
     }
 
     public static class TextIntent extends Intent<String> {
         public TextIntent(String talker, String content) {
             super(talker, content);
         }
-        public String getTalker(){
-            return this.talker;
+
+    }
+
+    public static class AudioIntent extends  Intent<String>{
+
+        public AudioIntent(String talker, String content) {
+            super(talker, content);
         }
 
-        public String getContent(){
+        /**
+         * Same as getContent
+         * @return
+         */
+        public String getFileName(){
             return this.content;
         }
+
     }
 
     private static BlockingQueue<Intent> jobs = new LinkedBlockingQueue<>(100);// May be enough
@@ -100,7 +128,7 @@ public class Senders {
 
         if (textSender != null) {
             try {
-                XposedBridge.log(String.format("Adding Intent[%s,%s]", talker, content));
+                XposedBridge.log(String.format("Adding TextIntent[%s,%s]", talker, content));
                 jobs.put(new TextIntent(talker, content));
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -109,6 +137,24 @@ public class Senders {
             XposedBridge.log("TextSender not initialized! From sendText");
         }
 
+    }
+
+    /**
+     * Submit a audio sending job.
+     * @param talker
+     * @param content
+     */
+    public static void sendAudio(String talker, String content){
+        if (talker == null || content == null){
+            return;
+        }
+
+        try {
+            XposedBridge.log(String.format("Adding AudioIntent[%s,%s]", talker, content));
+            jobs.put(new AudioIntent(talker, content));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
 }
